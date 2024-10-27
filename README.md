@@ -23,7 +23,7 @@ To use the script, you need to have the following installed:
 
 This will make the script available in your PowerShell profile.
 
-> Note: for permanent usage, you can add the script to your $PROFILE file.
+> Note: for permanent usage, you can add the script to your `$PROFILE` file.
 
 ## Usage
 
