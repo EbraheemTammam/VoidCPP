@@ -73,24 +73,25 @@ namespace $project_name::Core { class Logger; }
 
 class $project_name::Core::Logger
 {
-    public: enum struct LogLevel { Info, Warning, Error };
-    public: enum struct Output { Console, File };
-    public: static Logger& getInstance();
-    public: void setLogLevel(LogLevel level);
-    public: void setOutput(Output output);
-    public: void info(std::string_view message);
-    public: void warning(std::string_view message);
-    public: void error(std::string_view message);
-
-    private: void log(LogLevel level, std::string_view message);
-    private: Logger(const Logger&) = delete;
-    private: Logger& operator=(const Logger&) = delete;
-    private: Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
-    private: std::string getCurrentTime() const;
-    private: const char* to_string(LogLevel level) const;
-    private: LogLevel logLevel_;
-    private: Output output_;
-    private: mutable std::mutex mutex_;
+public:
+    enum struct LogLevel { Info, Warning, Error };
+    enum struct Output { Console, File };
+    static Logger& getInstance();
+    void setLogLevel(LogLevel level);
+    void setOutput(Output output);
+    void info(std::string_view message);
+    void warning(std::string_view message);
+    void error(std::string_view message);
+private:
+    void log(LogLevel level, std::string_view message);
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+    Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
+    std::string getCurrentTime() const;
+    const char* to_string(LogLevel level) const;
+    LogLevel logLevel_;
+    Output output_;
+    mutable std::mutex mutex_;
 };
 "@
 
