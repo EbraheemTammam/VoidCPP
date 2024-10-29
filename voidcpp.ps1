@@ -79,19 +79,25 @@ public:
     static Logger& getInstance();
     void setLogLevel(LogLevel level);
     void setOutput(Output output);
+    // Sync APIs
     void info(std::string_view message);
     void warning(std::string_view message);
     void error(std::string_view message);
+    // Async APIs
+    std::future<void> infoAsync(std::string_view message);
+    std::future<void> warningAsync(std::string_view message);
+    std::future<void> errorAsync(std::string_view message);
 private:
-    void log(LogLevel level, std::string_view message);
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
-    Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
-    std::string getCurrentTime() const;
-    const char* to_string(LogLevel level) const;
     LogLevel logLevel_;
     Output output_;
     mutable std::mutex mutex_;
+    Logger(const Logger&) = delete;
+    Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
+    Logger& operator=(const Logger&) = delete;
+    std::string getCurrentTime() const;
+    const char* to_string(LogLevel level) const;
+    void log(LogLevel level, std::string_view message);
+    std::future<void> logAsync(LogLevel level, std::string_view message);
 };
 "@
 
@@ -132,6 +138,12 @@ void $project_name::Core::Logger::log($project_name::Core::Logger::LogLevel leve
     }
 }
 
+std::future<void> $project_name::Core::Logger::logAsync($project_name::Core::Logger::LogLevel level, std::string_view message)
+{
+    if (level < logLevel_) return std::async([]{});
+    return std::async(std::launch::async, &Logger::log, this, level, message);
+}
+
 void $project_name::Core::Logger::info(std::string_view message)
 {
     log(LogLevel::Info, message);
@@ -145,6 +157,21 @@ void $project_name::Core::Logger::warning(std::string_view message)
 void $project_name::Core::Logger::error(std::string_view message)
 {
     log(LogLevel::Error, message);
+}
+
+std::future<void> $project_name::Core::Logger::infoAsync(std::string_view message)
+{
+    logAsync(LogLevel::Info, message);
+}
+
+std::future<void> $project_name::Core::Logger::warningAsync(std::string_view message)
+{
+    logAsync(LogLevel::Warning, message);
+}
+
+std::future<void> $project_name::Core::Logger::errorAsync(std::string_view message)
+{
+    logAsync(LogLevel::Error, message);
 }
 
 std::string $project_name::Core::Logger::getCurrentTime() const
