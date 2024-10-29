@@ -161,17 +161,17 @@ void $project_name::Core::Logger::error(std::string_view message)
 
 std::future<void> $project_name::Core::Logger::infoAsync(std::string_view message)
 {
-    logAsync(LogLevel::Info, message);
+    return logAsync(LogLevel::Info, message);
 }
 
 std::future<void> $project_name::Core::Logger::warningAsync(std::string_view message)
 {
-    logAsync(LogLevel::Warning, message);
+    return logAsync(LogLevel::Warning, message);
 }
 
 std::future<void> $project_name::Core::Logger::errorAsync(std::string_view message)
 {
-    logAsync(LogLevel::Error, message);
+    return logAsync(LogLevel::Error, message);
 }
 
 std::string $project_name::Core::Logger::getCurrentTime() const
