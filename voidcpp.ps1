@@ -74,15 +74,15 @@ namespace $project_name::Core { class Logger; }
 class $project_name::Core::Logger
 {
     public: enum struct LogLevel { Info, Warning, Error };
-    public: enum struct Output { Console,File };
+    public: enum struct Output { Console, File };
     public: static Logger& getInstance();
     public: void setLogLevel(LogLevel level);
     public: void setOutput(Output output);
-    public: void log(LogLevel level, std::string_view message);
     public: void info(std::string_view message);
     public: void warning(std::string_view message);
     public: void error(std::string_view message);
 
+    private: void log(LogLevel level, std::string_view message);
     private: Logger(const Logger&) = delete;
     private: Logger& operator=(const Logger&) = delete;
     private: Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
