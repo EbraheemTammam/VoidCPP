@@ -75,7 +75,7 @@ class $project_name::Core::Logger
 {
 public:
     enum struct LogLevel { Info, Warning, Error };
-    enum struct Output { Console, File };
+    enum struct Output { Console, File, All };
     static Logger& getInstance();
     void setLogLevel(LogLevel level);
     void setOutput(Output output);
@@ -123,10 +123,11 @@ void $project_name::Core::Logger::log($project_name::Core::Logger::LogLevel leve
     std::lock_guard<std::mutex> lock(mutex_);
     std::string logEntry = std::format("{} [{}] {}\n", getCurrentTime(), to_string(level), message);
 
-    if (output_ == Output::Console) {
+    if (output_ == Output::Console || output_ == Output::All)
         std::cout << logEntry;
-    } else {
-        std::ofstream logFile("log.txt", std::ios_base::app);
+    else if (output_ == Output::File || output_ == Output::All)
+    {
+        std::ofstream logFile("Logs.txt", std::ios_base::app);
         logFile << logEntry;
     }
 }
