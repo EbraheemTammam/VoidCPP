@@ -55,6 +55,7 @@ add_subdirectory("$project_name.Application")
 #include <iostream>
 #include <fstream>
 #include <mutex>
+#include <thread>
 #include <memory>
 #include <string>
 #include <string_view>
