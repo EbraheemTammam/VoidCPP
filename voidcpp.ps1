@@ -125,7 +125,7 @@ void $project_name::Core::Logger::log($project_name::Core::Logger::LogLevel leve
 
     if (output_ == Output::Console || output_ == Output::All)
         std::cout << logEntry;
-    else if (output_ == Output::File || output_ == Output::All)
+    if (output_ == Output::File || output_ == Output::All)
     {
         std::ofstream logFile("Logs.txt", std::ios_base::app);
         logFile << logEntry;
