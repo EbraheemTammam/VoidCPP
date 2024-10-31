@@ -48,6 +48,8 @@ add_subdirectory("$project_name.Application")
 
             New-Item -ItemType Directory -Path "$project_name.Core"
             New-Item -ItemType Directory -Path "$project_name.Core\Source"
+            New-Item -ItemType Directory -Path "$project_name.Core\Source\Interfaces"
+            New-Item -ItemType Directory -Path "$project_name.Core\Source\Utilities"
 
             Set-Content -Path "$project_name.Core\Source\PCH.h" -Value @"
 #pragma once
@@ -64,36 +66,71 @@ add_subdirectory("$project_name.Application")
 #include <format>
 "@
 
-            Set-Content -Path "$project_name.Core\Source\Logger.h" -Value @"
+            Set-Content -Path "$project_name.Core\Source\Interfaces\ILogger.h" -Value @"
 #pragma once
 
-#include "PCH.h"
+namespace $project_name::Core::Interfaces { class ILogger; }
 
-namespace $project_name::Core { class Logger; }
-
-class $project_name::Core::Logger
+class $project_name::Core::Interfaces::ILogger
 {
 public:
     enum struct LogLevel { Info, Warning, Error };
     enum struct Output { Console, File, All };
-    static Logger& getInstance();
-    void setLogLevel(LogLevel level);
-    void setOutput(Output output);
+
+    virtual void setLogLevel(LogLevel level) = 0;
+    virtual void setOutput(Output output) = 0;
+
     // Sync APIs
-    void info(std::string_view message);
-    void warning(std::string_view message);
-    void error(std::string_view message);
+    virtual void info(std::string_view message) = 0;
+    virtual void warning(std::string_view message) = 0;
+    virtual void error(std::string_view message) = 0;
+
     // Async APIs
-    std::future<void> infoAsync(std::string_view message);
-    std::future<void> warningAsync(std::string_view message);
-    std::future<void> errorAsync(std::string_view message);
+    virtual std::future<void> infoAsync(std::string_view message) = 0;
+    virtual std::future<void> warningAsync(std::string_view message) = 0;
+    virtual std::future<void> errorAsync(std::string_view message) = 0;
+
+    virtual ~ILogger() = default;
+};
+"@
+
+            Set-Content -Path "$project_name.Core\Source\Utilities\Logger.h" -Value @"
+#pragma once
+
+#include "PCH.h"
+#include "Interfaces/ILogger.h"
+
+namespace $project_name::Core::Utilities { class Logger; }
+
+class $project_name::Core::Utilities::Logger : public $project_name::Core::Interfaces::ILogger
+{
+public:
+    static Logger& getInstance();
+    void setLogLevel(LogLevel level) override;
+    void setOutput(Output output) override;
+
+    // Sync APIs
+    void info(std::string_view message) override;
+    void warning(std::string_view message) override;
+    void error(std::string_view message) override;
+
+    // Async APIs
+    std::future<void> infoAsync(std::string_view message) override;
+    std::future<void> warningAsync(std::string_view message) override;
+    std::future<void> errorAsync(std::string_view message) override;
+
+    ~Logger() override = default;
+
 private:
     LogLevel logLevel_;
     Output output_;
     mutable std::mutex mutex_;
+
     Logger(const Logger&) = delete;
     Logger() : logLevel_(LogLevel::Info), output_(Output::Console) {}
+
     Logger& operator=(const Logger&) = delete;
+
     std::string getCurrentTime() const;
     const char* to_string(LogLevel level) const;
     void log(LogLevel level, std::string_view message);
@@ -101,104 +138,107 @@ private:
 };
 "@
 
-            Set-Content -Path "$project_name.Core\Source\Logger.cpp" -Value @"
+            Set-Content -Path "$project_name.Core\Source\Utilities\Logger.cpp" -Value @"
 #include "Logger.h"
 
-$project_name::Core::Logger& $project_name::Core::Logger::getInstance()
+namespace $project_name::Core::Utilities
 {
-    static Logger instance;
-    return instance;
-}
-
-void $project_name::Core::Logger::setLogLevel(LogLevel level)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    logLevel_ = level;
-}
-
-void $project_name::Core::Logger::setOutput(Output output)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    output_ = output;
-}
-
-void $project_name::Core::Logger::log($project_name::Core::Logger::LogLevel level, std::string_view message)
-{
-    if (level < logLevel_) return;
-
-    std::lock_guard<std::mutex> lock(mutex_);
-    std::string logEntry = std::format("{} [{}] {}\n", getCurrentTime(), to_string(level), message);
-
-    if (output_ == Output::Console || output_ == Output::All)
-        std::cout << logEntry;
-    if (output_ == Output::File || output_ == Output::All)
+    Logger& Logger::getInstance()
     {
-        std::ofstream logFile("Logs.txt", std::ios_base::app);
-        logFile << logEntry;
+        static Logger instance;
+        return instance;
     }
-}
 
-std::future<void> $project_name::Core::Logger::logAsync($project_name::Core::Logger::LogLevel level, std::string_view message)
-{
-    if (level < logLevel_) return std::async([]{});
-    return std::async(std::launch::async, &Logger::log, this, level, message);
-}
+    void Logger::setLogLevel(LogLevel level)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        logLevel_ = level;
+    }
 
-void $project_name::Core::Logger::info(std::string_view message)
-{
-    log(LogLevel::Info, message);
-}
+    void Logger::setOutput(Output output)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        output_ = output;
+    }
 
-void $project_name::Core::Logger::warning(std::string_view message)
-{
-    log(LogLevel::Warning, message);
-}
+    void Logger::logLogger::LogLevel level, std::string_view message)
+    {
+        if (level < logLevel_) return;
 
-void $project_name::Core::Logger::error(std::string_view message)
-{
-    log(LogLevel::Error, message);
-}
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::string logEntry = std::format("{} [{}] {}\n", getCurrentTime(), to_string(level), message);
 
-std::future<void> $project_name::Core::Logger::infoAsync(std::string_view message)
-{
-    return logAsync(LogLevel::Info, message);
-}
+        if (output_ == Output::Console || output_ == Output::All)
+            std::cout << logEntry;
+        if (output_ == Output::File || output_ == Output::All)
+        {
+            std::ofstream logFile("Logs.txt", std::ios_base::app);
+            logFile << logEntry;
+        }
+    }
 
-std::future<void> $project_name::Core::Logger::warningAsync(std::string_view message)
-{
-    return logAsync(LogLevel::Warning, message);
-}
+    std::future<void> Logger::logAsyncLogger::LogLevel level, std::string_view message)
+    {
+        if (level < logLevel_) return std::async([]{});
+        return std::async(std::launch::async, &Logger::log, this, level, message);
+    }
 
-std::future<void> $project_name::Core::Logger::errorAsync(std::string_view message)
-{
-    return logAsync(LogLevel::Error, message);
-}
+    void Logger::info(std::string_view message)
+    {
+        log(LogLevel::Info, message);
+    }
 
-std::string $project_name::Core::Logger::getCurrentTime() const
-{
-    using std::chrono::_V2::system_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::milliseconds;
-    using millisec = std::chrono::duration<int64_t, std::milli>;
+    void Logger::warning(std::string_view message)
+    {
+        log(LogLevel::Warning, message);
+    }
 
-    auto now = system_clock::now();
-    time_t in_time_t = system_clock::to_time_t(now);
-    millisec milliseconds_ = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+    void Logger::error(std::string_view message)
+    {
+        log(LogLevel::Error, message);
+    }
 
-    std::ostringstream ss;
-    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S");
-    ss << '.' << std::setfill('0') << std::setw(3) << milliseconds_.count();
+    std::future<void> Logger::infoAsync(std::string_view message)
+    {
+        return logAsync(LogLevel::Info, message);
+    }
 
-    return ss.str();
-}
+    std::future<void> Logger::warningAsync(std::string_view message)
+    {
+        return logAsync(LogLevel::Warning, message);
+    }
 
-const char* $project_name::Core::Logger::to_string(LogLevel level) const
-{
-    switch (level) {
-        case LogLevel::Info: return "INFO";
-        case LogLevel::Warning: return "WARNING";
-        case LogLevel::Error: return "ERROR";
-        default: return "UNKNOWN";
+    std::future<void> Logger::errorAsync(std::string_view message)
+    {
+        return logAsync(LogLevel::Error, message);
+    }
+
+    std::string Logger::getCurrentTime() const
+    {
+        using std::chrono::_V2::system_clock;
+        using std::chrono::duration_cast;
+        using std::chrono::milliseconds;
+        using millisec = std::chrono::duration<int64_t, std::milli>;
+
+        auto now = system_clock::now();
+        time_t in_time_t = system_clock::to_time_t(now);
+        millisec milliseconds_ = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
+        std::ostringstream ss;
+        ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S");
+        ss << '.' << std::setfill('0') << std::setw(3) << milliseconds_.count();
+
+        return ss.str();
+    }
+
+    const char* Logger::to_string(LogLevel level) const
+    {
+        switch (level) {
+            case LogLevel::Info: return "INFO";
+            case LogLevel::Warning: return "WARNING";
+            case LogLevel::Error: return "ERROR";
+            default: return "UNKNOWN";
+        }
     }
 }
 "@
